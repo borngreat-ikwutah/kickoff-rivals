@@ -19,8 +19,8 @@ const getDatabaseUrl = (): string => {
   if (!url) {
     throw new Error(
       "DATABASE_URL is not defined. Please set it in your .env file.\n" +
-      "For local Docker: DATABASE_URL=postgresql://kickoff:kickoff_secret@localhost:5432/kickoff_rivals\n" +
-      "For Neon: DATABASE_URL=postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require",
+        "For local Docker: DATABASE_URL=postgresql://kickoff:kickoff_secret@localhost:5432/kickoff_rivals\n" +
+        "For Neon: DATABASE_URL=postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require",
     );
   }
   return url;
@@ -48,14 +48,28 @@ const createDatabaseClient = () => {
   }
 };
 
-// Create the Drizzle ORM client with schema
-export const db = createDatabaseClient();
+// Lazy-initialize the database client to avoid crashing at module import
+// when DATABASE_URL is not yet available (e.g. during SSR build or client bundle)
+let _db: ReturnType<typeof createDatabaseClient> | null = null;
+
+export const db = new Proxy({} as ReturnType<typeof createDatabaseClient>, {
+  get(_target, prop, receiver) {
+    if (!_db) {
+      _db = createDatabaseClient();
+    }
+    const value = Reflect.get(_db, prop, receiver);
+    if (typeof value === "function") {
+      return value.bind(_db);
+    }
+    return value;
+  },
+});
 
 // Re-export schema for convenience
 export * from "./schema";
 
 // Export the db type for use in other files
-export type Database = typeof db;
+export type Database = ReturnType<typeof createDatabaseClient>;
 
 // Helper to check connection health (useful for debugging)
 export const checkDatabaseConnection = async (): Promise<boolean> => {
