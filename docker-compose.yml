@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kickoff-rivals-db
+    environment:
+      POSTGRES_USER: kickoff
+      POSTGRES_PASSWORD: kickoff_secret
+      POSTGRES_DB: kickoff_rivals
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
