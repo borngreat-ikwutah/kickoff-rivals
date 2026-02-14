@@ -18,7 +18,9 @@ export default defineConfig({
         routesDirectory: "routes",
       },
     }),
-    nitro(),
+    nitro({
+      preset: process.env.VERCEL ? "vercel" : undefined,
+    }),
     viteReact(),
   ],
 });
